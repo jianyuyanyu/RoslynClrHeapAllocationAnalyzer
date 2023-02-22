@@ -16,7 +16,7 @@
 
         public static DiagnosticDescriptor MethodGroupAllocationRule = new DiagnosticDescriptor("HAA0603", "Delegate allocation from a method group", "This will allocate a delegate instance", "Performance", DiagnosticSeverity.Warning, true);
 
-        public static DiagnosticDescriptor ReadonlyMethodGroupAllocationRule = new DiagnosticDescriptor("HeapAnalyzerReadonlyMethodGroupAllocationRule", "Delegate allocation from a method group", "This will allocate a delegate instance", "Performance", DiagnosticSeverity.Info, true);
+        public static DiagnosticDescriptor ReadonlyMethodGroupAllocationRule = new DiagnosticDescriptor("HAA0604", "Delegate allocation from a method group", "This will allocate a delegate instance", "Performance", DiagnosticSeverity.Info, true);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ValueTypeToReferenceTypeConversionRule, DelegateOnStructInstanceRule, MethodGroupAllocationRule, ReadonlyMethodGroupAllocationRule);
 
@@ -266,11 +266,23 @@
                     }
                 }
 
-                var symbolInfo = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
-                if (symbolInfo?.ContainingType?.IsValueType == true && !insideObjectCreation) {
+                if (IsStructInstanceMethod(node, semanticModel, cancellationToken))
+                {
                     reportDiagnostic(Diagnostic.Create(DelegateOnStructInstanceRule, location, EmptyMessageArgs));
                 }
             }
+        }
+
+        private static bool IsStructInstanceMethod(SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken)
+        {
+            var nodeKind = node.Kind();
+            if (nodeKind == SyntaxKind.AnonymousMethodExpression || nodeKind == SyntaxKind.ParenthesizedLambdaExpression)
+            {
+                return false;
+            }
+
+            var symbolInfo = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
+            return symbolInfo != null && symbolInfo.Kind == SymbolKind.Method && symbolInfo.IsStatic == false && symbolInfo.ContainingType?.IsValueType == true;
         }
     }
 }
