@@ -192,3 +192,4 @@ ModelManifest.xml
 *.ide
 *.ide-shm
 *.dtbcache
+/.vs
