@@ -113,7 +113,7 @@ using System.Linq;
 int[] intData = new[] { 123, 32, 4 };
 var result = (from a in intData
               let b = a * 3
-              select b).ToList();
+              select b).ToArray();
 ";
 
             var analyser = new ExplicitAllocationAnalyzer();
@@ -150,7 +150,7 @@ var noAllocation = new DateTime();
 int[] intDataLinq = new int[] { 123, 32, 4 };
 var result = (from a in intDataLinq
               let b = a * 3
-              select b).ToList();
+              select b).ToArray();
 
 public struct TestStruct
 {

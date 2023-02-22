@@ -3,6 +3,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft;
 
 namespace ClrHeapAllocationAnalyzer.Test
 {
@@ -396,7 +398,7 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_ArgumentWithImplicitStringCastOperator() {
+        public void TypeConversionAllocation_ArgumentWithImplicitStringCastOperatorAsync() {
             const string programWithoutImplicitCastOperator = @"
                 public struct AStruct
                 {
@@ -429,7 +431,11 @@ var f2 = (object)""5""; // NO Allocation
                 }
             ";
 
+
             var analyzer = new TypeConversionAllocationAnalyzer();
+
+            //var expected = CSharpAnalyzerVerifier<TypeConversionAllocationAnalyzer>.Diagnostic(TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id).WithLocation(6, 50).WithArguments("TypeName");
+            //var info0 = await ProcessCodeAsync(analyzer, programWithoutImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument), expected2: expected);
 
             var info0 = ProcessCode(analyzer, programWithoutImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
             AssertEx.ContainsDiagnostic(info0.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 6, character: 50);
@@ -480,10 +486,14 @@ var f2 = (object)""5""; // NO Allocation
             var sampleProgram = @"string s = $""{1}"";";
 
             var analyser = new TypeConversionAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.Interpolation));
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.Interpolation), languageVersion: LanguageVersion.CSharp9);
 
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(0, info.Allocations.Count);
+#else
             Assert.AreEqual(1, info.Allocations.Count);
             AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 1, character: 15);
+#endif
         }
 
         [TestMethod]

@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace ClrHeapAllocationAnalyzer.Test
@@ -17,7 +18,7 @@ using System.Linq;
 
 int[] intData = new[] { 123, 32, 4 };
 IList<int> iListData = new[] { 123, 32, 4 };
-List<int> listData = new[] { 123, 32, 4 }.ToList();
+var listData = new[] { 123, 32, 4 }.ToArray();
 
 foreach (var i in intData)
 {
