@@ -1,4 +1,7 @@
-﻿using System;
+﻿
+/* Unmerged change from project 'ClrHeapAllocationsAnalyzer.Test (net5.0)'
+Before:
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -9,6 +12,28 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+After:
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using System.Collections.Diagnostics;
+using System.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections;
+using System.Threading.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using Microsoft.CodeAnalysis.Reflection;
+using System.Threading.Tasks;
+*/
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Reflection;
 
 namespace ClrHeapAllocationAnalyzer.Test
 {
@@ -51,8 +76,9 @@ namespace ClrHeapAllocationAnalyzer.Test
         }
 
         protected Info ProcessCode(DiagnosticAnalyzer analyzer, string sampleProgram,
-            ImmutableArray<SyntaxKind> expected, bool allowBuildErrors = false, string filePath = "", 
-            Microsoft.CodeAnalysis.CSharp.LanguageVersion languageVersion = Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest) {
+            ImmutableArray<SyntaxKind> expected, bool allowBuildErrors = false, string filePath = "",
+            Microsoft.CodeAnalysis.CSharp.LanguageVersion languageVersion = Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest)
+        {
 
             var options = new CSharpParseOptions(kind: SourceCodeKind.Script, languageVersion: languageVersion);
             var tree = CSharpSyntaxTree.ParseText(sampleProgram, options, filePath);
@@ -82,8 +108,7 @@ namespace ClrHeapAllocationAnalyzer.Test
             var compilationWithAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
             var allocations = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult().Distinct(DiagnosticEqualityComparer.Instance).ToList();
 
-            return new Info
-            {
+            return new Info {
                 Options = options,
                 Tree = tree,
                 Compilation = compilation,
