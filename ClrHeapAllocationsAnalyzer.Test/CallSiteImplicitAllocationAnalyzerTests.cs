@@ -1,6 +1,6 @@
-﻿using System.Collections.Immutable;
-using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Immutable;
 
 namespace ClrHeapAllocationAnalyzer.Test
 {
@@ -42,7 +42,8 @@ public void ParamsWithObjects(params object[] args)
         }
 
         [TestMethod]
-        public void CallSiteImplicitAllocation_NonOverridenMethodOnStruct() {
+        public void CallSiteImplicitAllocation_NonOverridenMethodOnStruct()
+        {
             var sampleProgram =
                 @"using System;
 
@@ -72,17 +73,19 @@ struct OverrideToHashCode
         }
 
         [TestMethod]
-        public void CallSiteImplicitAllocation_DoNotReportNonOverriddenMethodCallForStaticCalls() {
+        public void CallSiteImplicitAllocation_DoNotReportNonOverriddenMethodCallForStaticCalls()
+        {
             var snippet = @"var t = System.Enum.GetUnderlyingType(typeof(System.StringComparison));";
 
             var analyser = new CallSiteImplicitAllocationAnalyzer();
             var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.InvocationExpression));
 
             Assert.AreEqual(0, info.Allocations.Count);
-          }
+        }
 
         [TestMethod]
-        public void CallSiteImplicitAllocation_DoNotReportNonOverriddenMethodCallForNonVirtualCalls() {
+        public void CallSiteImplicitAllocation_DoNotReportNonOverriddenMethodCallForNonVirtualCalls()
+        {
             var snippet = @"
 using System.IO;
 
@@ -94,7 +97,7 @@ attr.HasFlag (FileAttributes.Directory);
             var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.InvocationExpression));
 
             Assert.AreEqual(0, info.Allocations.Count);
-          }
+        }
 
         [TestMethod]
         public void ParamsIsPrecededByOptionalParameters()

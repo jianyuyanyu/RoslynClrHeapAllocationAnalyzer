@@ -118,8 +118,10 @@
             }
         }
 
-        public void ReadonlyMethodGroupAllocation(string filePath) {
-            if (this.IsEnabled()) {
+        public void ReadonlyMethodGroupAllocation(string filePath)
+        {
+            if (this.IsEnabled())
+            {
                 this.WriteEvent(15, filePath);
             }
         }

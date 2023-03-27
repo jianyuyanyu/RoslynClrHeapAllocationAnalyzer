@@ -1,12 +1,12 @@
 ﻿namespace ClrHeapAllocationAnalyzer
 {
-    using System;
-    using System.Collections.Immutable;
-    using System.Threading;
     using Microsoft.CodeAnalysis;
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
     using Microsoft.CodeAnalysis.Diagnostics;
+    using System;
+    using System.Collections.Immutable;
+    using System.Threading;
 
 
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
@@ -22,21 +22,27 @@
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ValueTypeToReferenceTypeConversionRule, DelegateOnStructInstanceRule, MethodGroupAllocationRule, ReadonlyMethodGroupAllocationRule);
 
-        protected override SyntaxKind[] Expressions => new[]
+        protected override SyntaxKind[] Expressions
         {
-            SyntaxKind.SimpleAssignmentExpression,
-            SyntaxKind.ReturnStatement,
-            SyntaxKind.YieldReturnStatement,
-            SyntaxKind.CastExpression,
-            SyntaxKind.AsExpression,
-            SyntaxKind.CoalesceExpression,
-            SyntaxKind.ConditionalExpression,
-            SyntaxKind.ForEachStatement,
-            SyntaxKind.EqualsValueClause,
-            SyntaxKind.Argument,
-            SyntaxKind.ArrowExpressionClause,
-            SyntaxKind.Interpolation
-        };
+            get
+            {
+                var a = new[] {
+                    SyntaxKind.SimpleAssignmentExpression,
+                    SyntaxKind.ReturnStatement,
+                    SyntaxKind.YieldReturnStatement,
+                    SyntaxKind.CastExpression,
+                    SyntaxKind.AsExpression,
+                    SyntaxKind.CoalesceExpression,
+                    SyntaxKind.ConditionalExpression,
+                    SyntaxKind.ForEachStatement,
+                    SyntaxKind.EqualsValueClause,
+                    SyntaxKind.Argument,
+                    SyntaxKind.ArrowExpressionClause,
+                    SyntaxKind.Interpolation,
+                };
+                return a;
+            }
+        }
 
         private static readonly object[] EmptyMessageArgs = { };
 
@@ -47,7 +53,7 @@
             var cancellationToken = context.CancellationToken;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
             string filePath = node.SyntaxTree.FilePath;
-            bool assignedToReadonlyFieldOrProperty = 
+            bool assignedToReadonlyFieldOrProperty =
                 (context.ContainingSymbol as IFieldSymbol)?.IsReadOnly == true ||
                 (context.ContainingSymbol as IPropertySymbol)?.IsReadOnly == true;
 
@@ -95,8 +101,16 @@
             }
 
             // string a = $"{1}";
-            if (node is InterpolationSyntax) {
+            if (node is InterpolationSyntax)
+            {
+                IAssemblySymbol coreLibAssemblySymbol = context.Compilation.GetSpecialType(SpecialType.System_Runtime_CompilerServices_RuntimeFeature).ContainingAssembly;
+                if (coreLibAssemblySymbol.GetTypeByMetadataName("System.Runtime.CompilerServices.DefaultInterpolatedStringHandler") != null)
+                {
+                    return;
+                }
+
                 InterpolationCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+
                 return;
             }
 
@@ -178,9 +192,11 @@
 
         private static void InterpolationCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
+
             var interpolation = node as InterpolationSyntax;
             var typeInfo = semanticModel.GetTypeInfo(interpolation.Expression, cancellationToken);
-            if (typeInfo.Type?.IsValueType == true) {
+            if (typeInfo.Type?.IsValueType == true)
+            {
                 reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, interpolation.Expression.GetLocation(), EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
             }
@@ -269,7 +285,8 @@
                 {
                     if (node.IsKind(SyntaxKind.IdentifierName))
                     {
-                        if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol is IMethodSymbol) {
+                        if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol is IMethodSymbol)
+                        {
                             reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                         }
@@ -290,11 +307,12 @@
                                 HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                             }
                         }
-                    } 
+                    }
                     else if (node is ArrowExpressionClauseSyntax)
                     {
                         var arrowClause = node as ArrowExpressionClauseSyntax;
-                        if (semanticModel.GetSymbolInfo(arrowClause.Expression, cancellationToken).Symbol is IMethodSymbol) {
+                        if (semanticModel.GetSymbolInfo(arrowClause.Expression, cancellationToken).Symbol is IMethodSymbol)
+                        {
                             reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                         }

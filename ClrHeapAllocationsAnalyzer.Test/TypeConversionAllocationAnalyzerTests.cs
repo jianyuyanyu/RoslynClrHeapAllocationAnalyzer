@@ -1,8 +1,22 @@
-﻿using System;
+﻿
+/* Unmerged change from project 'ClrHeapAllocationsAnalyzer.Test (net5.0)'
+Before:
+using System;
+After:
+using Microsoft;
+*/
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Immutable;
 using System.Linq;
+/* Unmerged change from project 'ClrHeapAllocationsAnalyzer.Test (net5.0)'
+Before:
+using System.Threading.Tasks;
+using Microsoft;
+After:
+using System.Threading.Tasks;
+*/
+
 
 namespace ClrHeapAllocationAnalyzer.Test
 {
@@ -399,7 +413,8 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_ArgumentWithImplicitStringCastOperator() {
+        public void TypeConversionAllocation_ArgumentWithImplicitStringCastOperatorAsync()
+        {
             const string programWithoutImplicitCastOperator = @"
                 public struct AStruct
                 {
@@ -432,18 +447,23 @@ var f2 = (object)""5""; // NO Allocation
                 }
             ";
 
+
             var analyzer = new TypeConversionAllocationAnalyzer();
+
+            //var expected = CSharpAnalyzerVerifier<TypeConversionAllocationAnalyzer>.Diagnostic(TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id).WithLocation(6, 50).WithArguments("TypeName");
+            //var info0 = await ProcessCodeAsync(analyzer, programWithoutImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument), expected2: expected);
 
             var info0 = ProcessCode(analyzer, programWithoutImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
             AssertEx.ContainsDiagnostic(info0.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 6, character: 50);
-            
+
             var info1 = ProcessCode(analyzer, programWithImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
             Assert.AreEqual(0, info1.Allocations.Count);
         }
 
 
         [TestMethod]
-        public void TypeConversionAllocation_YieldReturnImplicitStringCastOperator() {
+        public void TypeConversionAllocation_YieldReturnImplicitStringCastOperator()
+        {
             const string programWithoutImplicitCastOperator = @"
                 public struct AStruct
                 {
@@ -479,18 +499,24 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_InterpolatedStringWithInt_BoxingWarning() {
+        public void TypeConversionAllocation_InterpolatedStringWithInt_BoxingWarning()
+        {
             var sampleProgram = @"string s = $""{1}"";";
 
             var analyser = new TypeConversionAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.Interpolation));
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.Interpolation), languageVersion: LanguageVersion.CSharp9);
 
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(0, info.Allocations.Count);
+#else
             Assert.AreEqual(1, info.Allocations.Count);
             AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 1, character: 15);
+#endif
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_InterpolatedStringWithString_NoWarning() {
+        public void TypeConversionAllocation_InterpolatedStringWithString_NoWarning()
+        {
             var sampleProgram = @"string s = $""{1.ToString()}"";";
 
             var analyser = new TypeConversionAllocationAnalyzer();
@@ -519,7 +545,8 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_ExpressionBodiedPropertyBoxing_WithBoxing() {
+        public void TypeConversionAllocation_ExpressionBodiedPropertyBoxing_WithBoxing()
+        {
             const string snippet = @"
                 class Program
                 {
@@ -534,7 +561,8 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_ExpressionBodiedPropertyBoxing_WithoutBoxing() {
+        public void TypeConversionAllocation_ExpressionBodiedPropertyBoxing_WithoutBoxing()
+        {
             const string snippet = @"
                 class Program
                 {
@@ -549,7 +577,8 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_ExpressionBodiedPropertyDelegate() {
+        public void TypeConversionAllocation_ExpressionBodiedPropertyDelegate()
+        {
             const string snippet = @"
                 using System;
                 class Program
@@ -569,7 +598,8 @@ var f2 = (object)""5""; // NO Allocation
         [TestMethod]
         [Description("Tests that an explicit delegate creation does not trigger HAA0603. " +
             "It should be handled by HAA0502.")]
-        public void TypeConversionAllocation_ExpressionBodiedPropertyExplicitDelegate_NoWarning() {
+        public void TypeConversionAllocation_ExpressionBodiedPropertyExplicitDelegate_NoWarning()
+        {
             const string snippet = @"
                 using System;
                 class Program
@@ -587,7 +617,8 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_NoDiagnosticWhenPassingDelegateAsArgument() {
+        public void TypeConversionAllocation_NoDiagnosticWhenPassingDelegateAsArgument()
+        {
             const string snippet = @"
 using System;
 struct Foo
@@ -606,11 +637,12 @@ struct Foo
 
             var analyzer = new TypeConversionAllocationAnalyzer();
             var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
-            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 7, 16 );
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 7, 16);
         }
-        
+
         [TestMethod]
-        public void TypeConversionAllocation_ReportBoxingAllocationForPassingStructInstanceMethodForDelegateConstructor() {
+        public void TypeConversionAllocation_ReportBoxingAllocationForPassingStructInstanceMethodForDelegateConstructor()
+        {
             const string snippet = @"
 using System;
 public struct MyStruct {
@@ -630,11 +662,12 @@ public struct MyStruct {
 
             var analyzer = new TypeConversionAllocationAnalyzer();
             var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
-            AssertEx.ContainsDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 54 );
-        } 
-        
+            AssertEx.ContainsDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 54);
+        }
+
         [TestMethod]
-        public void TypeConversionAllocation_DoNotReportBoxingAllocationForPassingStructStaticMethodForDelegateConstructor() {
+        public void TypeConversionAllocation_DoNotReportBoxingAllocationForPassingStructStaticMethodForDelegateConstructor()
+        {
             const string snippet = @"
 using System;
 public struct MyStruct {
@@ -654,11 +687,12 @@ public struct MyStruct {
 
             var analyzer = new TypeConversionAllocationAnalyzer();
             var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
-            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 54 );
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 54);
         }
-        
+
         [TestMethod]
-        public void TypeConversionAllocation_DoNotReportInlineDelegateAsStructInstanceMethods() {
+        public void TypeConversionAllocation_DoNotReportInlineDelegateAsStructInstanceMethods()
+        {
             const string snippet = @"
 using System;
 public struct MyStruct {
@@ -678,10 +712,10 @@ public struct MyStruct {
 
             var analyzer = new TypeConversionAllocationAnalyzer();
             var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
-            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 26 );
-            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 7, 26 );
-            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 8, 26 );
-            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 9, 26 );
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 26);
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 7, 26);
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 8, 26);
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 9, 26);
         }
     }
 }

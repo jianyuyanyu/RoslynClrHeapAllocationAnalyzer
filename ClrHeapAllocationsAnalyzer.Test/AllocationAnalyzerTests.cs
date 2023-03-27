@@ -1,11 +1,39 @@
-﻿using System;
+﻿
+/* Unmerged change from project 'ClrHeapAllocationsAnalyzer.Test (net5.0)'
+Before:
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+After:
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using System.Collections.Diagnostics;
+using System.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections;
+using System.Threading.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using Microsoft.CodeAnalysis.Reflection;
+using System.Threading.Tasks;
+*/
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Reflection;
 
 namespace ClrHeapAllocationAnalyzer.Test
 {
@@ -17,7 +45,8 @@ namespace ClrHeapAllocationAnalyzer.Test
                 MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.CodeDom.Compiler.GeneratedCodeAttribute).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(IList<>).Assembly.Location)
+                MetadataReference.CreateFromFile(typeof(IList<>).Assembly.Location),
+                //MetadataReference.CreateFromFile(typeof(List<>).Assembly.Location),
             };
 
         protected IList<SyntaxNode> GetExpectedDescendants(IEnumerable<SyntaxNode> nodes, ImmutableArray<SyntaxKind> expected)
@@ -47,14 +76,23 @@ namespace ClrHeapAllocationAnalyzer.Test
         }
 
         protected Info ProcessCode(DiagnosticAnalyzer analyzer, string sampleProgram,
-            ImmutableArray<SyntaxKind> expected, bool allowBuildErrors = false, string filePath = "")
+            ImmutableArray<SyntaxKind> expected, bool allowBuildErrors = false, string filePath = "",
+            Microsoft.CodeAnalysis.CSharp.LanguageVersion languageVersion = Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest)
         {
-            var options = new CSharpParseOptions(kind: SourceCodeKind.Script);
+
+            var options = new CSharpParseOptions(kind: SourceCodeKind.Script, languageVersion: languageVersion);
             var tree = CSharpSyntaxTree.ParseText(sampleProgram, options, filePath);
+
+            // Fix CS0012 problems: https://github.com/dotnet/roslyn/issues/49498#issuecomment-734452762
+            Assembly.GetEntryAssembly()
+                    .GetReferencedAssemblies()
+                    .ToList()
+                    .ForEach(a => references.Add(MetadataReference.CreateFromFile(Assembly.Load(a).Location)));
+
             var compilation = CSharpCompilation.Create("Test", new[] { tree }, references);
 
             var diagnostics = compilation.GetDiagnostics();
-            if (diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error) > 0)
+            if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
             {
                 var msg = "There were Errors in the sample code\n";
                 if (allowBuildErrors == false)
@@ -67,11 +105,10 @@ namespace ClrHeapAllocationAnalyzer.Test
             var matches = GetExpectedDescendants(tree.GetRoot().ChildNodes(), expected);
 
             // Run the code tree through the analyzer and record the allocations it reports
-            var compilationWithAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create(analyzer));
+            var compilationWithAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
             var allocations = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult().Distinct(DiagnosticEqualityComparer.Instance).ToList();
 
-            return new Info
-            {
+            return new Info {
                 Options = options,
                 Tree = tree,
                 Compilation = compilation,

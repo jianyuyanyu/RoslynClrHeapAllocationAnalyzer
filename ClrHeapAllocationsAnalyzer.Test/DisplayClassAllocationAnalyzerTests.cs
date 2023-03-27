@@ -10,7 +10,7 @@ namespace ClrHeapAllocationAnalyzer.Test
         [TestMethod]
         public void DisplayClassAllocation_AnonymousMethodExpressionSyntax()
         {
-            var sampleProgram = 
+            var sampleProgram =
 @"using System;
 
 class Test
@@ -58,7 +58,7 @@ public class Testing<T>
     {
         int[] intData = new[] { 123, 32, 4 };
         int min = 31;
-        var results = intData.Where(i => i > min).ToList();
+        var results = intData.Where(i => i > min).ToArray();
     }
 }";
 
