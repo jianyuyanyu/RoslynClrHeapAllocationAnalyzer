@@ -1,9 +1,13 @@
-**NOTE** This project is no longer maintained. The high impact analyzers from this repository are being merged with dotnet/roslyn-analyzers. As such, this repo was archived
-
-Roslyn Clr Heap Allocation Analyzer
+Reflection IT - Clr Heap Allocation Analyzer
 ===================================
 
-[![Join the chat at https://gitter.im/mjsabby/RoslynClrHeapAllocationAnalyzer](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mjsabby/RoslynClrHeapAllocationAnalyzer?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+This project is a fork of the **archived** [RoslynClrHeapAllocationAnalyzer](https://github.com/microsoft/RoslynClrHeapAllocationAnalyzer) project. This allowed us to add new features for .NET6 and later to it. These newer targetframeworks have features which don't allocate objects any more which the original analyzer was still reporting. For example: in .NET6 string interpolation does not cause Boxing any more. This is now not reported any more.
+
+# NuGet packages
+
+| Package | Version |
+| ------ | ------ |
+| ReflectionIT.ClrHeapAllocationAnalyzer | [![NuGet](https://img.shields.io/nuget/v/ReflectionIT.ClrHeapAllocationAnalyzer)](https://www.nuget.org/packages/ReflectionIT.ClrHeapAllocationAnalyzer) |         
 
 Quick Video: https://www.youtube.com/watch?v=Tw-wgT-cXYU&hd=1
 
