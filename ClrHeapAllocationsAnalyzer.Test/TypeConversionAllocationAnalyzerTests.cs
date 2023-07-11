@@ -717,5 +717,27 @@ public struct MyStruct {
             AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 8, 26);
             AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 9, 26);
         }
+
+        [TestMethod]
+        public void TypeConversionAllocation_StaticMethod() {
+            var sampleProgram =
+@"using System.Collections.Generic;
+using System;
+
+var words = new List<string> { ""foo"", ""bar"", ""baz"", ""beer"" };
+words.ForEach(Console.WriteLine);
+";
+
+            var analyser = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.ParenthesizedLambdaExpression));
+
+#if NET7_0_OR_GREATER
+            Assert.AreEqual(0, info.Allocations.Count);
+#else
+            Assert.AreEqual(1, info.Allocations.Count);
+            // Diagnostic: (7,17): warning HeapAnalyzerClosureCaptureRule: The compiler will emit a class that will hold this as a field to allow capturing of this closure
+            AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.MethodGroupAllocationRule.Id, line: 5, character: 15);
+#endif
+        }
     }
 }

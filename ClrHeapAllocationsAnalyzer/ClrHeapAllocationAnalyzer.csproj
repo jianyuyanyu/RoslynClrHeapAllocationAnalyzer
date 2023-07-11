@@ -3,9 +3,10 @@
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<IsPackable>false</IsPackable>
-		<Version>3.1.0</Version>
+		<Version>3.2.0</Version>
 		<PackageId>*$(MSBuildProjectFile)*</PackageId>
 		<AssemblyName>ReflectionIT.ClrHeapAllocationAnalyzer</AssemblyName>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 	</PropertyGroup>
 
 

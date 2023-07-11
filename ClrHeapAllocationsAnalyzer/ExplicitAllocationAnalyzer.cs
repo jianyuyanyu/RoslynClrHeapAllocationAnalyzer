@@ -37,7 +37,7 @@
             SyntaxKind.LetClause                            // Used
         };
 
-        private static readonly object[] EmptyMessageArgs = { };
+        private static object[] EmptyMessageArgs { get; } = { };
 
         protected override void AnalyzeNode(SyntaxNodeAnalysisContext context)
         {

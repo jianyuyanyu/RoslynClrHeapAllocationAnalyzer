@@ -25,12 +25,7 @@ namespace ClrHeapAllocationAnalyzer.Test
         {
             int hash = unchecked(currentKey.Value * (int)0xA5555529);
 
-            if (newKeyPart.HasValue)
-            {
-                return unchecked(hash + newKeyPart.Value);
-            }
-
-            return hash;
+            return newKeyPart.HasValue ? hash + newKeyPart.Value : hash;
         }
     }
 }
