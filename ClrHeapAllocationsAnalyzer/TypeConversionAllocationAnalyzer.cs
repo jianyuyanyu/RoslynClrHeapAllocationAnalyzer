@@ -12,7 +12,7 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class TypeConversionAllocationAnalyzer : AllocationAnalyzer
     {
-        public static DiagnosticDescriptor ValueTypeToReferenceTypeConversionRule = new DiagnosticDescriptor("HAA0601", "Value type to reference type conversion causing boxing allocation", "Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable", "Performance", DiagnosticSeverity.Warning, true);
+        public static DiagnosticDescriptor ValueTypeToReferenceTypeConversionRule = new DiagnosticDescriptor("HAA0601", "Value type to reference type conversion causing boxing allocation", "Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable.", "Performance", DiagnosticSeverity.Warning, true);
 
         public static DiagnosticDescriptor DelegateOnStructInstanceRule = new DiagnosticDescriptor("HAA0602", "Delegate on struct instance caused a boxing allocation", "Struct instance method being used for delegate creation, this will result in a boxing instruction", "Performance", DiagnosticSeverity.Warning, true);
 
@@ -44,7 +44,7 @@
             }
         }
 
-        private static readonly object[] EmptyMessageArgs = { };
+        private static object[] EmptyMessageArgs { get; } = { };
 
         protected override void AnalyzeNode(SyntaxNodeAnalysisContext context)
         {
@@ -294,17 +294,16 @@
                     else if (node.IsKind(SyntaxKind.SimpleMemberAccessExpression))
                     {
                         var memberAccess = node as MemberAccessExpressionSyntax;
-                        if (semanticModel.GetSymbolInfo(memberAccess.Name, cancellationToken).Symbol is IMethodSymbol)
-                        {
-                            if (isAssignmentToReadonly)
-                            {
+                        if (semanticModel.GetSymbolInfo(memberAccess.Name, cancellationToken).Symbol is IMethodSymbol methodSymbol) {
+                            if (isAssignmentToReadonly) {
                                 reportDiagnostic(Diagnostic.Create(ReadonlyMethodGroupAllocationRule, location, EmptyMessageArgs));
                                 HeapAllocationAnalyzerEventSource.Logger.ReadonlyMethodGroupAllocation(filePath);
-                            }
-                            else
-                            {
-                                reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
-                                HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                            } else {
+                                if (!methodSymbol.IsStatic ||
+                                    !semanticModel.Compilation.HasLanguageVersionAtLeastEqualTo(LanguageVersion.CSharp11)) {
+                                    reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
+                                    HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                                }
                             }
                         }
                     }

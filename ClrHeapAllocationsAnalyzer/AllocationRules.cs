@@ -6,7 +6,7 @@ namespace ClrHeapAllocationAnalyzer
 {
     public class AllocationRules
     {
-        private static readonly HashSet<ValueTuple<string, string>> IgnoredAttributes = new HashSet<(string, string)>
+        private static HashSet<ValueTuple<string, string>> IgnoredAttributes { get; } = new HashSet<(string, string)>
         {
             ("System.Runtime.CompilerServices", "CompilerGeneratedAttribute"),
             ("System.CodeDom.Compiler", "GeneratedCodeAttribute")

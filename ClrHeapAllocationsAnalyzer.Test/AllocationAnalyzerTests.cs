@@ -39,7 +39,7 @@ namespace ClrHeapAllocationAnalyzer.Test
 {
     public abstract class AllocationAnalyzerTests
     {
-        protected static readonly List<MetadataReference> references = new List<MetadataReference>
+        protected static readonly List<MetadataReference> References = new List<MetadataReference>
             {
                 MetadataReference.CreateFromFile(typeof(int).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
@@ -80,6 +80,12 @@ namespace ClrHeapAllocationAnalyzer.Test
             Microsoft.CodeAnalysis.CSharp.LanguageVersion languageVersion = Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest)
         {
 
+#if NET5_0
+            languageVersion = LanguageVersion.CSharp9;
+#elif NET6_0
+            languageVersion = LanguageVersion.CSharp10;
+#endif
+
             var options = new CSharpParseOptions(kind: SourceCodeKind.Script, languageVersion: languageVersion);
             var tree = CSharpSyntaxTree.ParseText(sampleProgram, options, filePath);
 
@@ -87,9 +93,9 @@ namespace ClrHeapAllocationAnalyzer.Test
             Assembly.GetEntryAssembly()
                     .GetReferencedAssemblies()
                     .ToList()
-                    .ForEach(a => references.Add(MetadataReference.CreateFromFile(Assembly.Load(a).Location)));
+                    .ForEach(a => References.Add(MetadataReference.CreateFromFile(Assembly.Load(a).Location)));
 
-            var compilation = CSharpCompilation.Create("Test", new[] { tree }, references);
+            var compilation = CSharpCompilation.Create("Test", new[] { tree }, References);
 
             var diagnostics = compilation.GetDiagnostics();
             if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
