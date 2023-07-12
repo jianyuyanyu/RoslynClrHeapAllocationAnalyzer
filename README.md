@@ -15,7 +15,7 @@ Quick Video: https://www.youtube.com/watch?v=Tw-wgT-cXYU&hd=1
 
 Roslyn based C# heap allocation diagnostic analyzer that can detect explicit and many implicit allocations like boxing, display classes a.k.a closures, implicit delegate creations, etc.
 
-You can find also it on the Visual Studio Marketplace, https://marketplace.visualstudio.com/items?itemName=FonsSonnemans.ClrHeapAllocationAnalyzer
+You can find also install the Visual Studio Extension from the Visual Studio Marketplace, https://marketplace.visualstudio.com/items?itemName=FonsSonnemans.ClrHeapAllocationAnalyzer
 
 ![example](https://cloud.githubusercontent.com/assets/1930559/4606581/2a027d08-5225-11e4-8d4e-686c204a1267.png)
 
