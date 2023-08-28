@@ -11,6 +11,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClrHeapAllocationAnalyzer",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClrHeapAllocationsAnalyzer.Package", "ClrHeapAllocationsAnalyzer.Package\ClrHeapAllocationsAnalyzer.Package.csproj", "{8844D37C-7AF2-4E97-BCC1-FE424C12D3EB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8DFF08CA-6EF3-43AF-B0DB-05D663274DBA}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
