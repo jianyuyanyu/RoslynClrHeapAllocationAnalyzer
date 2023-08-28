@@ -735,8 +735,31 @@ words.ForEach(Console.WriteLine);
             Assert.AreEqual(0, info.Allocations.Count);
 #else
             Assert.AreEqual(1, info.Allocations.Count);
-            // Diagnostic: (7,17): warning HeapAnalyzerClosureCaptureRule: The compiler will emit a class that will hold this as a field to allow capturing of this closure
+            // Diagnostic: (5,15): warning HeapAnalyzerClosureCaptureRule: The compiler will emit a class that will hold this as a field to allow capturing of this closure
             AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.MethodGroupAllocationRule.Id, line: 5, character: 15);
+#endif
+        }
+
+        [TestMethod]
+        public void TypeConversionAllocation_StaticMethodV2() {
+            var sampleProgram =
+@"using System;
+
+Func<int> fp = Foo;
+fp.Invoke();
+
+static int Foo() {
+    return 0;
+}";
+            var analyser = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.ParenthesizedLambdaExpression));
+
+#if NET7_0_OR_GREATER
+            Assert.AreEqual(0, info.Allocations.Count);
+#else
+            Assert.AreEqual(1, info.Allocations.Count);
+            // Diagnostic: (3,16): warning HeapAnalyzerClosureCaptureRule: The compiler will emit a class that will hold this as a field to allow capturing of this closure
+            AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.MethodGroupAllocationRule.Id, line: 3, character: 16);
 #endif
         }
     }
