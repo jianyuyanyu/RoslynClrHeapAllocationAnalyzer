@@ -285,10 +285,13 @@
                 {
                     if (node.IsKind(SyntaxKind.IdentifierName))
                     {
-                        if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol is IMethodSymbol)
+                        if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol is IMethodSymbol methodSymbol)
                         {
-                            reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
-                            HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                            if (!methodSymbol.IsStatic ||
+                                !semanticModel.Compilation.HasLanguageVersionAtLeastEqualTo(LanguageVersion.CSharp11)) {
+                                reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
+                                HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                            }
                         }
                     }
                     else if (node.IsKind(SyntaxKind.SimpleMemberAccessExpression))
@@ -310,10 +313,13 @@
                     else if (node is ArrowExpressionClauseSyntax)
                     {
                         var arrowClause = node as ArrowExpressionClauseSyntax;
-                        if (semanticModel.GetSymbolInfo(arrowClause.Expression, cancellationToken).Symbol is IMethodSymbol)
+                        if (semanticModel.GetSymbolInfo(arrowClause.Expression, cancellationToken).Symbol is IMethodSymbol methodSymbol)
                         {
-                            reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
-                            HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                            if (!methodSymbol.IsStatic ||
+                                !semanticModel.Compilation.HasLanguageVersionAtLeastEqualTo(LanguageVersion.CSharp11)) {
+                                reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
+                                HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                            }
                         }
                     }
                 }
