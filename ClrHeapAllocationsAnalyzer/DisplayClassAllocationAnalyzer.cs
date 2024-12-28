@@ -61,6 +61,12 @@
                 return;
             }
 
+            if (flow.Captured.Length == 1 && flow.Captured[0].Name == "this")
+            {
+                // If only 'this' is captured, code generated will not be in a display class.
+                return;
+            }
+
             foreach (var capture in flow.Captured)
             {
                 if (capture.Name != null && capture.Locations != null)
