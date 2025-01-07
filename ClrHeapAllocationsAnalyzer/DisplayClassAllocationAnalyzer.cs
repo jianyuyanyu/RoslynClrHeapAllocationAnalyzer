@@ -12,13 +12,22 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class DisplayClassAllocationAnalyzer : AllocationAnalyzer
     {
+        /// <summary>
+        /// HAA0301: Closure Allocation Source
+        /// </summary>
         public static DiagnosticDescriptor ClosureDriverRule = new DiagnosticDescriptor("HAA0301", "Closure Allocation Source", "Heap allocation of closure Captures: {0}", "Performance", DiagnosticSeverity.Warning, true);
 
+        /// <summary>
+        /// HAA0302: Display class allocation to capture closure
+        /// </summary>
         public static DiagnosticDescriptor ClosureCaptureRule = new DiagnosticDescriptor("HAA0302", "Display class allocation to capture closure", "The compiler will emit a class that will hold this as a field to allow capturing of this closure", "Performance", DiagnosticSeverity.Warning, true);
 
+        /// <summary>
+        /// HAA0303: Lambda or anonymous method in a generic method allocates a delegate instance
+        /// </summary>
         public static DiagnosticDescriptor LambaOrAnonymousMethodInGenericMethodRule = new DiagnosticDescriptor("HAA0303", "Lambda or anonymous method in a generic method allocates a delegate instance", "Considering moving this out of the generic method", "Performance", DiagnosticSeverity.Warning, true);
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ClosureCaptureRule, ClosureDriverRule, LambaOrAnonymousMethodInGenericMethodRule);
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ClosureCaptureRule, ClosureDriverRule, LambaOrAnonymousMethodInGenericMethodRule, TypeConversionAllocationAnalyzer.MethodGroupAllocationRule);
 
         protected override SyntaxKind[] Expressions => new[] { SyntaxKind.ParenthesizedLambdaExpression, SyntaxKind.SimpleLambdaExpression, SyntaxKind.AnonymousMethodExpression };
 
@@ -49,12 +58,13 @@
             if (node is ParenthesizedLambdaExpressionSyntax parenLambdaExpr)
             {
                 GenericMethodCheck(semanticModel, node, parenLambdaExpr.ArrowToken.GetLocation(), reportDiagnostic, cancellationToken);
-                ClosureCaptureDataFlowAnalysis(semanticModel.AnalyzeDataFlow(parenLambdaExpr), reportDiagnostic, parenLambdaExpr.ArrowToken.GetLocation());
+                bool isConstructor = node.Parent.Parent.Parent is ObjectCreationExpressionSyntax;
+                ClosureCaptureDataFlowAnalysis(semanticModel.AnalyzeDataFlow(parenLambdaExpr), reportDiagnostic, parenLambdaExpr.ArrowToken.GetLocation(), isConstructor);
                 return;
             }
         }
 
-        private static void ClosureCaptureDataFlowAnalysis(DataFlowAnalysis flow, Action<Diagnostic> reportDiagnostic, Location location)
+        private static void ClosureCaptureDataFlowAnalysis(DataFlowAnalysis flow, Action<Diagnostic> reportDiagnostic, Location location, bool isConstructor = false)
         {
             if (flow?.Captured.Length <= 0)
             {
@@ -63,6 +73,11 @@
 
             if (flow.Captured.Length == 1 && flow.Captured[0].Name == "this")
             {
+                if (!isConstructor)
+                {
+                    reportDiagnostic(Diagnostic.Create(TypeConversionAllocationAnalyzer.MethodGroupAllocationRule, flow.Captured[0].Locations[0], EmptyMessageArgs));
+                }
+
                 // If only 'this' is captured, code generated will not be in a display class.
                 return;
             }
@@ -85,8 +100,7 @@
         {
             if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol != null)
             {
-                var containingSymbol = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol.ContainingSymbol as IMethodSymbol;
-                if (containingSymbol != null && containingSymbol.Arity > 0)
+                if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol.ContainingSymbol is IMethodSymbol containingSymbol && containingSymbol.Arity > 0)
                 {
                     reportDiagnostic(Diagnostic.Create(LambaOrAnonymousMethodInGenericMethodRule, location, EmptyMessageArgs));
                 }

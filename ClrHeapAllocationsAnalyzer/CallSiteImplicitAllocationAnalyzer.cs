@@ -10,13 +10,21 @@ namespace ClrHeapAllocationAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class CallSiteImplicitAllocationAnalyzer : AllocationAnalyzer
     {
+        /// <summary>
+        /// HAA0101: Array allocation for params parameter
+        /// </summary>
         public static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor("HAA0101", "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation.", "Performance", DiagnosticSeverity.Warning, true);
 
+        /// <summary>
+        /// HAA0102: Non-overridden virtual method call on value type
+        /// </summary>        
         public static DiagnosticDescriptor ValueTypeNonOverridenCallRule = new DiagnosticDescriptor("HAA0102", "Non-overridden virtual method call on value type", "Non-overridden virtual method call on a value type adds a boxing or constrained instruction", "Performance", DiagnosticSeverity.Warning, true);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ParamsParameterRule, ValueTypeNonOverridenCallRule);
 
-        protected override SyntaxKind[] Expressions => new[] { SyntaxKind.InvocationExpression };
+        protected override SyntaxKind[] Expressions => new[] { 
+            SyntaxKind.InvocationExpression,
+        };
 
         private static object[] EmptyMessageArgs { get; } = { };
 
@@ -28,8 +36,7 @@ namespace ClrHeapAllocationAnalyzer
             var cancellationToken = context.CancellationToken;
             string filePath = node.SyntaxTree.FilePath;
 
-            var invocationOperation = semanticModel.GetOperation(node, cancellationToken) as IInvocationOperation;
-            if (invocationOperation is null)
+            if (semanticModel.GetOperation(node, cancellationToken) is not IInvocationOperation invocationOperation)
             {
                 return;
             }

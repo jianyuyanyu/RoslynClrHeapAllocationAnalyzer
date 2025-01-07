@@ -6,11 +6,11 @@ namespace ClrHeapAllocationAnalyzer
 {
     public class AllocationRules
     {
-        private static HashSet<ValueTuple<string, string>> IgnoredAttributes { get; } = new HashSet<(string, string)>
-        {
+        private static HashSet<ValueTuple<string, string>> IgnoredAttributes { get; } =
+        [
             ("System.Runtime.CompilerServices", "CompilerGeneratedAttribute"),
             ("System.CodeDom.Compiler", "GeneratedCodeAttribute")
-        };
+        ];
 
         public static bool IsIgnoredFile(string filePath)
         {

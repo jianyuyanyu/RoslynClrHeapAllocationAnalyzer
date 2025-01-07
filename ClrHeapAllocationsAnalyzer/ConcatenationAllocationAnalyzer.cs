@@ -11,8 +11,14 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class ConcatenationAllocationAnalyzer : AllocationAnalyzer
     {
+        /// <summary>
+        /// HAA0201: Implicit string concatenation allocation
+        /// </summary>
         public static DiagnosticDescriptor StringConcatenationAllocationRule = new DiagnosticDescriptor("HAA0201", "Implicit string concatenation allocation", "Considering using StringBuilder", "Performance", DiagnosticSeverity.Warning, true, string.Empty, "http://msdn.microsoft.com/en-us/library/2839d5h5(v=vs.110).aspx");
 
+        /// <summary>
+        /// HAA0202: Value type to reference type conversion allocation for string concatenation
+        /// </summary>
         public static DiagnosticDescriptor ValueTypeToReferenceTypeInAStringConcatenationRule = new DiagnosticDescriptor("HAA0202", "Value type to reference type conversion allocation for string concatenation", "Value type ({0}) is being boxed to a reference type for a string concatenation", "Performance", DiagnosticSeverity.Warning, true, string.Empty, "http://msdn.microsoft.com/en-us/library/yz2be5wk.aspx");
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(StringConcatenationAllocationRule, ValueTypeToReferenceTypeInAStringConcatenationRule);
@@ -65,12 +71,12 @@
         private static void CheckTypeConversion(TypeInfo typeInfo, Conversion conversionInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
         {
 
-            bool IsOptimizedValueType(ITypeSymbol type)
+            static bool IsOptimizedValueType(ITypeSymbol type)
             {
-                return type.SpecialType == SpecialType.System_Boolean ||
-                       type.SpecialType == SpecialType.System_Char ||
-                       type.SpecialType == SpecialType.System_IntPtr ||
-                       type.SpecialType == SpecialType.System_UIntPtr;
+                return type.SpecialType is SpecialType.System_Boolean or
+                       SpecialType.System_Char or
+                       SpecialType.System_IntPtr or
+                       SpecialType.System_UIntPtr;
             }
 
             if (conversionInfo.IsBoxing && !IsOptimizedValueType(typeInfo.Type))

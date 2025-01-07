@@ -19,7 +19,7 @@ namespace ClrHeapAllocationAnalyzer.Test
             var sampleProgramNoThisCapture =
 @"using System;
 
-private sealed class NoThisCapture
+class NoThisCapture
 {
     void TestFunction()
     {
@@ -44,7 +44,7 @@ private sealed class NoThisCapture
             var sampleProgramThisCapture =
 @"using System;
 
-private sealed class ThisCapture
+class ThisCapture
 {
     void TestFunction(int parameter)
     {
@@ -57,7 +57,7 @@ private sealed class ThisCapture
 }
 ";
             var analyser = new DisplayClassAllocationAnalyzer();
-        
+
             var info = ProcessCode(analyser, sampleProgramThisCapture, ImmutableArray.Create(SyntaxKind.ParenthesizedLambdaExpression));
             Assert.AreEqual(3, info.Allocations.Count);
 
@@ -74,7 +74,7 @@ private sealed class ThisCapture
             var sampleProgramThisCapture =
 @"using System;
 
-private sealed class ThisCaptureTwo
+class ThisCaptureTwo
 {
     void TestFunction(int parameter)
     {

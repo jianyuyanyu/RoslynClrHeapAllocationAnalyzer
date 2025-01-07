@@ -6,21 +6,34 @@
     using Microsoft.CodeAnalysis.Diagnostics;
     using System;
     using System.Collections.Immutable;
+    using System.Linq;
     using System.Threading;
 
 
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class TypeConversionAllocationAnalyzer : AllocationAnalyzer
     {
+        /// <summary>
+        /// HAA0601: Value type to reference type conversion causing boxing allocation
+        /// </summary>
         public static DiagnosticDescriptor ValueTypeToReferenceTypeConversionRule = new DiagnosticDescriptor("HAA0601", "Value type to reference type conversion causing boxing allocation", "Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable.", "Performance", DiagnosticSeverity.Warning, true);
 
+        /// <summary>
+        /// HAA0602: Delegate on struct instance caused a boxing allocation
+        /// </summary>
         public static DiagnosticDescriptor DelegateOnStructInstanceRule = new DiagnosticDescriptor("HAA0602", "Delegate on struct instance caused a boxing allocation", "Struct instance method being used for delegate creation, this will result in a boxing instruction", "Performance", DiagnosticSeverity.Warning, true);
 
+        /// <summary>
+        /// HAA0603: Delegate allocation from a method group
+        /// </summary>
         public static DiagnosticDescriptor MethodGroupAllocationRule = new DiagnosticDescriptor("HAA0603", "Delegate allocation from a method group", "This will allocate a delegate instance", "Performance", DiagnosticSeverity.Warning, true);
 
+        /// <summary>
+        /// HAA0604: Delegate allocation from a method group
+        /// </summary>
         public static DiagnosticDescriptor ReadonlyMethodGroupAllocationRule = new DiagnosticDescriptor("HAA0604", "Delegate allocation from a method group", "This will allocate a delegate instance", "Performance", DiagnosticSeverity.Info, true);
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ValueTypeToReferenceTypeConversionRule, DelegateOnStructInstanceRule, MethodGroupAllocationRule, ReadonlyMethodGroupAllocationRule);
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ValueTypeToReferenceTypeConversionRule, DelegateOnStructInstanceRule, MethodGroupAllocationRule, ReadonlyMethodGroupAllocationRule, CallSiteImplicitAllocationAnalyzer.ParamsParameterRule);
 
         protected override SyntaxKind[] Expressions
         {
@@ -39,6 +52,7 @@
                     SyntaxKind.Argument,
                     SyntaxKind.ArrowExpressionClause,
                     SyntaxKind.Interpolation,
+                    //SyntaxKind.InterpolatedStringExpression,
                 };
                 return a;
             }
@@ -99,6 +113,20 @@
                 ConditionalExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
+
+            // string a = $"{1}{2}{3}{4}";
+            //if (node is InterpolatedStringExpressionSyntax interpolatedStringExpressionSyntax)
+            //{
+            //    IAssemblySymbol coreLibAssemblySymbol = context.Compilation.GetSpecialType(SpecialType.System_Runtime_CompilerServices_RuntimeFeature).ContainingAssembly;
+            //    if (coreLibAssemblySymbol.GetTypeByMetadataName("System.Runtime.CompilerServices.DefaultInterpolatedStringHandler") != null)
+            //    {
+            //        return;
+            //    }
+
+            //    InterpolationSyntaxCheck(interpolatedStringExpressionSyntax, semanticModel, reportDiagnostic, filePath, cancellationToken);
+
+            //    return;
+            //}
 
             // string a = $"{1}";
             if (node is InterpolationSyntax)
@@ -187,6 +215,15 @@
                 CheckTypeConversion(assignmentExprConversionInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
                 CheckDelegateCreation(binaryExpression.Right, assignmentExprTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
                 return;
+            }
+        }
+
+        private static void InterpolationSyntaxCheck(InterpolatedStringExpressionSyntax interpolation, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        {
+            if (interpolation.Contents.OfType<InterpolationSyntax>().Count() >= 4)
+            {
+                reportDiagnostic(Diagnostic.Create(CallSiteImplicitAllocationAnalyzer.ParamsParameterRule, interpolation.GetLocation(), EmptyMessageArgs));
+                HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
             }
         }
 
@@ -280,43 +317,46 @@
                     insideObjectCreation)
                 {
                     // skip this, because it's intended.
-                }
-                else
+                } else
                 {
                     if (node.IsKind(SyntaxKind.IdentifierName))
                     {
                         if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol is IMethodSymbol methodSymbol)
                         {
                             if (!methodSymbol.IsStatic ||
-                                !semanticModel.Compilation.HasLanguageVersionAtLeastEqualTo(LanguageVersion.CSharp11)) {
+                                !semanticModel.Compilation.HasLanguageVersionAtLeastEqualTo(LanguageVersion.CSharp11))
+                            {
                                 reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
                                 HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                             }
                         }
-                    }
-                    else if (node.IsKind(SyntaxKind.SimpleMemberAccessExpression))
+                    } else if (node.IsKind(SyntaxKind.SimpleMemberAccessExpression))
                     {
                         var memberAccess = node as MemberAccessExpressionSyntax;
-                        if (semanticModel.GetSymbolInfo(memberAccess.Name, cancellationToken).Symbol is IMethodSymbol methodSymbol) {
-                            if (isAssignmentToReadonly) {
+                        if (semanticModel.GetSymbolInfo(memberAccess.Name, cancellationToken).Symbol is IMethodSymbol methodSymbol)
+                        {
+                            if (isAssignmentToReadonly)
+                            {
                                 reportDiagnostic(Diagnostic.Create(ReadonlyMethodGroupAllocationRule, location, EmptyMessageArgs));
                                 HeapAllocationAnalyzerEventSource.Logger.ReadonlyMethodGroupAllocation(filePath);
-                            } else {
+                            } else
+                            {
                                 if (!methodSymbol.IsStatic ||
-                                    !semanticModel.Compilation.HasLanguageVersionAtLeastEqualTo(LanguageVersion.CSharp11)) {
+                                    !semanticModel.Compilation.HasLanguageVersionAtLeastEqualTo(LanguageVersion.CSharp11))
+                                {
                                     reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
                                     HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                                 }
                             }
                         }
-                    }
-                    else if (node is ArrowExpressionClauseSyntax)
+                    } else if (node is ArrowExpressionClauseSyntax)
                     {
                         var arrowClause = node as ArrowExpressionClauseSyntax;
                         if (semanticModel.GetSymbolInfo(arrowClause.Expression, cancellationToken).Symbol is IMethodSymbol methodSymbol)
                         {
                             if (!methodSymbol.IsStatic ||
-                                !semanticModel.Compilation.HasLanguageVersionAtLeastEqualTo(LanguageVersion.CSharp11)) {
+                                !semanticModel.Compilation.HasLanguageVersionAtLeastEqualTo(LanguageVersion.CSharp11))
+                            {
                                 reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
                                 HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                             }
@@ -334,7 +374,7 @@
         private static bool IsStructInstanceMethod(SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken)
         {
             var nodeKind = node.Kind();
-            if (nodeKind == SyntaxKind.AnonymousMethodExpression || nodeKind == SyntaxKind.ParenthesizedLambdaExpression)
+            if (nodeKind is SyntaxKind.AnonymousMethodExpression or SyntaxKind.ParenthesizedLambdaExpression)
             {
                 return false;
             }

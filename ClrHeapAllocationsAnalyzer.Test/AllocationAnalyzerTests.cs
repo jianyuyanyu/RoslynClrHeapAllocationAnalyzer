@@ -68,7 +68,7 @@ namespace ClrHeapAllocationAnalyzer.Test
                         continue;
                     }
 
-                    if (child.ChildNodes().Count() > 0)
+                    if (child.ChildNodes().Any())
                         descendants.AddRange(GetExpectedDescendants(child.ChildNodes(), expected));
                 }
             }
@@ -80,14 +80,22 @@ namespace ClrHeapAllocationAnalyzer.Test
             Microsoft.CodeAnalysis.CSharp.LanguageVersion languageVersion = Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest)
         {
 
-#if NET5_0
-            languageVersion = LanguageVersion.CSharp9;
-#elif NET6_0
-            languageVersion = LanguageVersion.CSharp10;
+#if NET40_OR_GREATER
+            SetEntryAssembly(System.Reflection.Assembly.GetCallingAssembly());
 #endif
+
+            if (languageVersion == LanguageVersion.Latest)
+            {
+#if NET48_OR_GREATER
+                languageVersion = LanguageVersion.CSharp7_3;
+#elif !NET6_0_OR_GREATER
+                languageVersion = LanguageVersion.CSharp9;
+#endif
+            }
 
             var options = new CSharpParseOptions(kind: SourceCodeKind.Script, languageVersion: languageVersion);
             var tree = CSharpSyntaxTree.ParseText(sampleProgram, options, filePath);
+
 
             // Fix CS0012 problems: https://github.com/dotnet/roslyn/issues/49498#issuecomment-734452762
             Assembly.GetEntryAssembly()
@@ -114,7 +122,8 @@ namespace ClrHeapAllocationAnalyzer.Test
             var compilationWithAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
             var allocations = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult().Distinct(DiagnosticEqualityComparer.Instance).ToList();
 
-            return new Info {
+            return new Info
+            {
                 Options = options,
                 Tree = tree,
                 Compilation = compilation,
@@ -123,6 +132,24 @@ namespace ClrHeapAllocationAnalyzer.Test
                 Matches = matches,
                 Allocations = allocations,
             };
+        }
+
+        /// <summary>
+        /// Allows setting the Entry Assembly when needed.
+        /// Use AssemblyUtilities.SetEntryAssembly() as first line in XNA ad hoc tests
+        /// </summary>
+        /// <param name="assembly">Assembly to set as entry assembly</param>
+        public static void SetEntryAssembly(System.Reflection.Assembly assembly)
+        {
+#if NET40_OR_GREATER
+            AppDomainManager manager = new AppDomainManager();
+            FieldInfo entryAssemblyfield = manager.GetType().GetField("m_entryAssembly", BindingFlags.Instance | BindingFlags.NonPublic);
+            entryAssemblyfield.SetValue(manager, assembly);
+
+            AppDomain domain = AppDomain.CurrentDomain;
+            FieldInfo domainManagerField = domain.GetType().GetField("_domainManager", BindingFlags.Instance | BindingFlags.NonPublic);
+            domainManagerField.SetValue(domain, manager);
+#endif
         }
 
         protected class Info

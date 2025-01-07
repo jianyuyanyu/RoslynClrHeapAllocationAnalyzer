@@ -515,6 +515,27 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
+        [Ignore]
+        public void TypeConversionAllocation_InterpolatedStringWith4Arguments_ArrayAllocationWarning()
+        {
+            var sampleProgram = @"
+                var txt = ""abc"";
+                var t = typeof(string);
+                string s = $""Test {txt}, {txt}{t}{t}"";
+            ";
+
+            var analyser = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.Interpolation), languageVersion: LanguageVersion.CSharp9);
+
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(0, info.Allocations.Count);
+#else
+           // Assert.AreEqual(1, info.Allocations.Count);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 4, character: 28);
+#endif
+        }
+
+        [TestMethod]
         public void TypeConversionAllocation_InterpolatedStringWithString_NoWarning()
         {
             var sampleProgram = @"string s = $""{1.ToString()}"";";
@@ -719,7 +740,8 @@ public struct MyStruct {
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_StaticMethod() {
+        public void TypeConversionAllocation_StaticMethod()
+        {
             var sampleProgram =
 @"using System.Collections.Generic;
 using System;
@@ -741,7 +763,8 @@ words.ForEach(Console.WriteLine);
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_StaticMethodV2() {
+        public void TypeConversionAllocation_StaticMethodV2()
+        {
             var sampleProgram =
 @"using System;
 

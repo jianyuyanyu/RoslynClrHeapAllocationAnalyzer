@@ -11,6 +11,9 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class EnumeratorAllocationAnalyzer : AllocationAnalyzer
     {
+        /// <summary>
+        /// HAA0401: Possible allocation of reference type enumerator
+        /// </summary>
         public static DiagnosticDescriptor ReferenceTypeEnumeratorRule = new DiagnosticDescriptor("HAA0401", "Possible allocation of reference type enumerator", "Non-ValueType enumerator may result in a heap allocation", "Performance", DiagnosticSeverity.Warning, true);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ReferenceTypeEnumeratorRule);
@@ -26,8 +29,7 @@
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
             var cancellationToken = context.CancellationToken;
             string filePath = node.SyntaxTree.FilePath;
-            var foreachExpression = node as ForEachStatementSyntax;
-            if (foreachExpression != null)
+            if (node is ForEachStatementSyntax foreachExpression)
             {
                 var typeInfo = semanticModel.GetTypeInfo(foreachExpression.Expression, cancellationToken);
                 if (typeInfo.Type == null)
@@ -59,8 +61,8 @@
 
                 if (enumerator != null && enumerator.Length > 0)
                 {
-                    var methodSymbol = enumerator[0] as IMethodSymbol; // probably should do something better here, hack.
-                    if (methodSymbol != null)
+                    // probably should do something better here, hack.
+                    if (enumerator[0] is IMethodSymbol methodSymbol)
                     {
                         if (methodSymbol.ReturnType.IsReferenceType && methodSymbol.ReturnType.SpecialType != SpecialType.System_Collections_IEnumerator)
                         {
@@ -73,8 +75,7 @@
                 return;
             }
 
-            var invocationExpression = node as InvocationExpressionSyntax;
-            if (invocationExpression != null)
+            if (node is InvocationExpressionSyntax invocationExpression)
             {
                 var methodInfo = semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol as IMethodSymbol;
                 if (methodInfo?.ReturnType != null && methodInfo.ReturnType.IsReferenceType)
@@ -83,7 +84,7 @@
                     {
                         foreach (var @interface in methodInfo.ReturnType.AllInterfaces)
                         {
-                            if (@interface.SpecialType == SpecialType.System_Collections_Generic_IEnumerator_T || @interface.SpecialType == SpecialType.System_Collections_IEnumerator)
+                            if (@interface.SpecialType is SpecialType.System_Collections_Generic_IEnumerator_T or SpecialType.System_Collections_IEnumerator)
                             {
                                 reportDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, invocationExpression.GetLocation(), EmptyMessageArgs));
                                 HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
