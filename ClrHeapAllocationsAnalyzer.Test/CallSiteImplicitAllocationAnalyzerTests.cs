@@ -8,7 +8,7 @@ namespace ClrHeapAllocationAnalyzer.Test
     public class CallSiteImplicitAllocationAnalyzerTests : AllocationAnalyzerTests
     {
         [TestMethod]
-        public void CallSiteImplicitAllocation_Param_CSharp12()
+        public void CallSiteImplicitAllocation_Param()
         {
             var sampleProgram =
 @"using System;
@@ -18,41 +18,7 @@ Params(1, 2);
 Params(new [] { 1, 2}); // explicit, so no warning
 ParamsWithObjects(new [] { 1, 2}); // explicit, but converted to objects, so still a warning?!
 
-// Only 4 args and above use the params overload of String.Format
-var test = String.Format(""Testing {0}, {1}, {2}, {3}"", 1, ""blah"", 2.0m, 'c');
-
-public void Params(params int[] args)
-{
-}
-
-public void ParamsWithObjects(params object[] args)
-{
-}";
-
-            var analyser = new CallSiteImplicitAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression), languageVersion: LanguageVersion.CSharp12);
-
-            Assert.AreEqual(3, info.Allocations.Count, "Should report 3 allocations");
-            // Diagnostic: (4,1): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation
-            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 4, character: 1);
-            // Diagnostic: (6,1): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation
-            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 6, character: 1);
-            // Diagnostic: (9,12): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation
-            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 9, character: 12);
-        }
-
-        [TestMethod]
-        public void CallSiteImplicitAllocation_Param_CSharp13()
-        {
-            var sampleProgram =
-@"using System;
-
-Params(); //no allocation, because compiler will implicitly substitute Array<int>.Empty
-Params(1, 2);
-Params(new [] { 1, 2}); // explicit, so no warning
-ParamsWithObjects(new [] { 1, 2}); // explicit, but converted to objects, so still a warning?!
-
-// Only 4 args and above use the params overload of String.Format
+// Only 4 args and above use the params overload of String.Format if not running .NET9
 var test = String.Format(""Testing {0}, {1}, {2}, {3}"", 1, ""blah"", 2.0m, 'c');
 
 public void Params(params int[] args)
@@ -66,19 +32,17 @@ public void ParamsWithObjects(params object[] args)
             var analyser = new CallSiteImplicitAllocationAnalyzer();
             var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
 #if NET9_0_OR_GREATER
+            // String.Format got a new overload using ReadOnlySpan<object?> Params Collection (C#13)
             Assert.AreEqual(2, info.Allocations.Count, "Should report 2 allocations");
 #else
             Assert.AreEqual(3, info.Allocations.Count, "Should report 3 allocations");
+            // Diagnostic: (9,12): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation
+            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 9, character: 12);
 #endif
             // Diagnostic: (4,1): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation
             AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 4, character: 1);
             // Diagnostic: (6,1): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation
             AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 6, character: 1);
-#if !NET9_0_OR_GREATER
-            // Diagnostic: (9,12): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation
-            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 9, character: 12);
-#endif
-
         }
 
         [TestMethod]

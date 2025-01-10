@@ -58,7 +58,9 @@
             if (node is ParenthesizedLambdaExpressionSyntax parenLambdaExpr)
             {
                 GenericMethodCheck(semanticModel, node, parenLambdaExpr.ArrowToken.GetLocation(), reportDiagnostic, cancellationToken);
-                bool isConstructor = node.Parent.Parent.Parent is ObjectCreationExpressionSyntax;
+
+
+                bool isConstructor = node.Parent?.Parent?.Parent is ObjectCreationExpressionSyntax;
                 ClosureCaptureDataFlowAnalysis(semanticModel.AnalyzeDataFlow(parenLambdaExpr), reportDiagnostic, parenLambdaExpr.ArrowToken.GetLocation(), isConstructor);
                 return;
             }
@@ -75,7 +77,7 @@
             {
                 if (!isConstructor)
                 {
-                    reportDiagnostic(Diagnostic.Create(TypeConversionAllocationAnalyzer.MethodGroupAllocationRule, flow.Captured[0].Locations[0], EmptyMessageArgs));
+                    reportDiagnostic(Diagnostic.Create(TypeConversionAllocationAnalyzer.MethodGroupAllocationRule, location, EmptyMessageArgs));
                 }
 
                 // If only 'this' is captured, code generated will not be in a display class.

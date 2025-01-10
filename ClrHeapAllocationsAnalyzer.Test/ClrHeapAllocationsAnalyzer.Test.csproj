@@ -4,7 +4,7 @@
     Required to build with NET48, see https://github.com/microsoft/testfx/issues/4426 
     -->
 	<PropertyGroup>
-		<TargetFrameworks>net48;net9.0</TargetFrameworks>
+		<TargetFrameworks>net48;net8.0;net9.0</TargetFrameworks>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<IsPackable>false</IsPackable>
 		<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>

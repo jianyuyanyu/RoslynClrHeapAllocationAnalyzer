@@ -17,15 +17,17 @@ namespace ClrHeapAllocationAnalyzer.Test
 
                 class Demo1 {
 
-                    public int CountEvens(List<int> list) {
+                    public int CountPositiveEvens(List<int> list) {
                         // HAA0603: Heap allocation of Func<int, bool> delegate
-                        return list.Count(i => IsEven(i));
+                        return list.Count(i => IsEven(i) && i >= 0);
                     }
 
                     // Filter method, non static
+                #pragma warning disable CA1822 // Mark members as static
                     private bool IsEven(int value) {
                         return value % 2 == 0;
                     }
+                #pragma warning restore CA1822 // Mark members as static
                 }
             ";
 
@@ -33,7 +35,7 @@ namespace ClrHeapAllocationAnalyzer.Test
             var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.ParenthesizedLambdaExpression, SyntaxKind.SimpleLambdaExpression, SyntaxKind.AnonymousMethodExpression));
 
             Assert.AreEqual(1, info.Allocations.Count);
-            AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.MethodGroupAllocationRule.Id, line: 8, character: 32);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.MethodGroupAllocationRule.Id, line: 10, character: 45);
         }
 
         [TestMethod]

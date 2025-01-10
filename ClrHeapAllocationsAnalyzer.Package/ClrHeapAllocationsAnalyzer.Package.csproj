@@ -21,7 +21,6 @@
 		<PackageReleaseNotes>
             - Fix for HAA0301 and HAA0302 misdiagnosis on 'this'
             - Fix for HAA0603 misdiagnosis on 'this'
-            - Fix for HAA0101 misdiagnosis on .NET9 with C#13
         </PackageReleaseNotes>
 		<PackageTags>clr allocations boxing closure displayclass delegate enumerator newobj roslyn analyzer diagnostic</PackageTags>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
